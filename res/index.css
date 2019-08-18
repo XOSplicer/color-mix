@@ -10,15 +10,19 @@
     width: 80%;
     display: flex;
     flex-direction: row;
+    justify-content: center;
     margin-bottom: 1em;
     border: 1px solid black;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .inputs,
 .outputs {
-    padding: 4px;
+    padding: 12px;
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
 }
 
 .outputs {
@@ -27,5 +31,8 @@
 
 .output {
     margin-right: 4px;
+}
 
+.inputs {
+    max-width: 12em;
 }

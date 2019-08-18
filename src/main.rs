@@ -214,8 +214,8 @@ fn id(input_len: usize, round: usize) -> String {
 }
 
 fn main() -> std::io::Result<()> {
-    let max_len = 6;
-    let rounds = 5;
+    let max_len = 5;
+    let rounds = 10;
     let out_dir = Path::new("./out");
     let res_dir = Path::new("./res");
 

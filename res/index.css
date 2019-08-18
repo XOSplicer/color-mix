@@ -1,0 +1,31 @@
+.input,
+.output {
+    width: 4em;
+    height: 4em;
+    display: inline-block;
+}
+
+.record {
+    max-width: 60em;
+    width: 80%;
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 1em;
+    border: 1px solid black;
+}
+
+.inputs,
+.outputs {
+    padding: 4px;
+    display: flex;
+    flex-direction: row;
+}
+
+.outputs {
+    margin-left: 12px;
+}
+
+.output {
+    margin-right: 4px;
+
+}

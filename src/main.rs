@@ -12,7 +12,7 @@ enum ComputeError {
     AverageOutOfRange,
     AngleOutOfRange,
     PercentageOutOfRange,
-    Paniced,
+    Panic,
 }
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl Record {
         let input: String = self.input.iter()
         .enumerate()
         .map(|(n, c)| format!(
-".record-{}.input-{} {{
+".record-{} .input-{} {{
     background-color: {};
 }}\n",
             &self.id,
@@ -38,21 +38,21 @@ impl Record {
         ))
         .collect();
         let rgb_avg = format!(
-".record-{}.rgb-avg {{
+".record-{} .rgb-avg {{
     background-color: {};
 }}\n",
             &self.id,
             &self.rgb_avg.to_css(),
         );
         let less_mix = format!(
-".record-{}.less-mix {{
+".record-{} .less-mix {{
     background-color: {};
 }}\n",
             &self.id,
             &self.less_mix.to_css(),
         );
         let hsl_geo = format!(
-".record-{}.hsl-geo {{
+".record-{} .hsl-geo {{
     background-color: {};
 }}\n",
             &self.id,
@@ -61,6 +61,27 @@ impl Record {
         vec![input, rgb_avg, less_mix, hsl_geo]
             .into_iter()
             .collect()
+    }
+
+    fn to_html(&self) -> String {
+        let input: String = self.input.iter()
+            .enumerate()
+            .map(|(n, _)| format!("<div class='input input-{}'></div>\n", n))
+            .collect();
+        format!(
+"<div class='record record-{}'>
+    <div class='inputs'>
+    {}
+    </div>
+    <div class='outputs'>
+        <div class='output rgb-avg'></div>
+        <div class='output less-mix'></div>
+        <div class='output hsl-geo'></div>
+    </div>
+</div>\n",
+            self.id,
+            input
+        )
     }
 }
 
@@ -196,8 +217,9 @@ fn main() -> std::io::Result<()> {
     let max_len = 6;
     let rounds = 5;
     let out_dir = Path::new("./out");
+    let res_dir = Path::new("./res");
 
-    let color_css: String = create_iter(max_len, rounds)
+    let records: Vec<Record> = create_iter(max_len, rounds)
         .map(|(input_len, round)| {
             let input: Vec<_> = (0..input_len).map(|_| random_color()).collect();
             let id = id(input_len, round);
@@ -207,36 +229,66 @@ fn main() -> std::io::Result<()> {
                 b: Ratio::from_u8(0),
             };
             let rgb_avg = panic::catch_unwind(|| rgb_avg(&input))
-                .map_err(|_| ComputeError::Paniced)
+                .map_err(|_| ComputeError::Panic)
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: rgb_avg not computable for {:?}", e, &input);
                     black.clone()
                 });
             let less_mix = panic::catch_unwind(|| less_mix(&input))
-                .map_err(|_| ComputeError::Paniced)
+                .map_err(|_| ComputeError::Panic)
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: less_mix not computable for {:?}", e, &input);
                     black.clone()
                 });
             let hsl_geo = panic::catch_unwind(|| hsl_geo(&input))
-                .map_err(|_| ComputeError::Paniced)
+                .map_err(|_| ComputeError::Panic)
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: hsl_geo not computable for {:?}", e, &input);
                     black.clone()
                 });
-            let record = Record {
+            Record {
                 id, input, rgb_avg, less_mix, hsl_geo
-            };
-            record.to_css()
+            }
         }).collect();
 
+        let color_css: String = records.iter()
+            .map(|r| r.to_css())
+            .collect();
+
+        let html_content: String = records.iter()
+            .map(|r| r.to_html())
+            .collect();
+
+        let html = format!(
+"<html>
+ <head>
+<link rel='stylesheet' type='text/css' href='index.css'>
+<link rel='stylesheet' type='text/css' href='colors.css'>
+</head>
+<body>
+{}
+</body>
+</html>",
+            html_content
+        );
 
     fs::create_dir_all(out_dir)?;
+
+    fs::copy(res_dir.join("index.css"), out_dir.join("index.css"))?;
+
     let mut color_css_file = File::create(out_dir.join("colors.css"))?;
     color_css_file.write_all(color_css.as_bytes())?;
+    drop(color_css_file);
+
+    let mut html_file = File::create(out_dir.join("index.html"))?;
+    html_file.write_all(html.as_bytes())?;
+    drop(html_file);
+
+
+
     Ok(())
 }
 

@@ -1,10 +1,9 @@
-use css_colors::{RGB, HSL, Angle, Ratio, Color};
-use std::iter;
+use css_colors::{Angle, Color, Ratio, HSL, RGB};
 use std::fs::{self, File};
-use std::path::Path;
 use std::io::Write;
+use std::iter;
 use std::panic;
-
+use std::path::Path;
 
 #[derive(Debug)]
 enum ComputeError {
@@ -26,33 +25,37 @@ struct Record {
 
 impl Record {
     fn to_css(&self) -> String {
-        let input: String = self.input.iter()
-        .enumerate()
-        .map(|(n, c)| format!(
-".record-{} .input-{} {{
+        let input: String = self
+            .input
+            .iter()
+            .enumerate()
+            .map(|(n, c)| {
+                format!(
+                    ".record-{} .input-{} {{
     background-color: {};
 }}\n",
-            &self.id,
-            n,
-            c.to_css(),
-        ))
-        .collect();
+                    &self.id,
+                    n,
+                    c.to_css(),
+                )
+            })
+            .collect();
         let rgb_avg = format!(
-".record-{} .rgb-avg {{
+            ".record-{} .rgb-avg {{
     background-color: {};
 }}\n",
             &self.id,
             &self.rgb_avg.to_css(),
         );
         let less_mix = format!(
-".record-{} .less-mix {{
+            ".record-{} .less-mix {{
     background-color: {};
 }}\n",
             &self.id,
             &self.less_mix.to_css(),
         );
         let hsl_geo = format!(
-".record-{} .hsl-geo {{
+            ".record-{} .hsl-geo {{
     background-color: {};
 }}\n",
             &self.id,
@@ -64,12 +67,14 @@ impl Record {
     }
 
     fn to_html(&self) -> String {
-        let input: String = self.input.iter()
+        let input: String = self
+            .input
+            .iter()
             .enumerate()
             .map(|(n, _)| format!("<div class='input input-{}'></div>\n", n))
             .collect();
         format!(
-"<div class='record record-{}'>
+            "<div class='record record-{}'>
     <div class='inputs'>
     {}
     </div>
@@ -79,38 +84,31 @@ impl Record {
         <div class='output hsl-geo'></div>
     </div>
 </div>\n",
-            self.id,
-            input
+            self.id, input
         )
     }
 }
 
 fn rgb_avg(input: &[RGB]) -> Result<RGB, ComputeError> {
-    if input.len() == 0 {
+    if input.is_empty() {
         return Err(ComputeError::EmptyInput);
     }
 
-    let r_sum: u64 = input.iter()
-        .map(|c| c.r.as_u8() as u64)
-        .sum();
-    let g_sum: u64 = input.iter()
-        .map(|c| c.g.as_u8() as u64)
-        .sum();
-    let b_sum: u64 = input.iter()
-        .map(|c| c.b.as_u8() as u64)
-        .sum();
+    let r_sum: u64 = input.iter().map(|c| u64::from(c.r.as_u8())).sum();
+    let g_sum: u64 = input.iter().map(|c| u64::from(c.g.as_u8())).sum();
+    let b_sum: u64 = input.iter().map(|c| u64::from(c.b.as_u8())).sum();
 
     let r_avg: u64 = r_sum / input.len() as u64;
     let g_avg: u64 = g_sum / input.len() as u64;
     let b_avg: u64 = b_sum / input.len() as u64;
 
-    if r_avg > u8::max_value() as u64 {
+    if r_avg > u64::from(u8::max_value()) {
         return Err(ComputeError::AverageOutOfRange);
     }
-    if g_avg > u8::max_value() as u64 {
+    if g_avg > u64::from(u8::max_value()) {
         return Err(ComputeError::AverageOutOfRange);
     }
-    if b_avg > u8::max_value() as u64 {
+    if b_avg > u64::from(u8::max_value()) {
         return Err(ComputeError::AverageOutOfRange);
     }
 
@@ -122,7 +120,7 @@ fn rgb_avg(input: &[RGB]) -> Result<RGB, ComputeError> {
 }
 
 fn less_mix(input: &[RGB]) -> Result<RGB, ComputeError> {
-    if input.len() == 0 {
+    if input.is_empty() {
         return Err(ComputeError::EmptyInput);
     }
 
@@ -134,43 +132,44 @@ fn less_mix(input: &[RGB]) -> Result<RGB, ComputeError> {
 
     let ratio = Ratio::from_f32(percent);
 
-    Ok(input.iter()
+    Ok(input
+        .iter()
         .skip(1)
-        .fold(input[0], |acc, c|
-            acc.mix(c.clone(), ratio.clone())
-            .to_rgb()
-        )
-    )
+        .fold(input[0], |acc, c| acc.mix(c.clone(), ratio).to_rgb()))
 }
 
 fn hsl_geo(input: &[RGB]) -> Result<RGB, ComputeError> {
-    if input.len() == 0 {
+    if input.is_empty() {
         return Err(ComputeError::EmptyInput);
     }
 
-    let s_sum: u64 = input.iter()
-        .map(|c| c.clone().to_hsl().s.as_u8() as u64)
+    let s_sum: u64 = input
+        .iter()
+        .map(|c| u64::from(c.clone().to_hsl().s.as_u8()))
         .sum();
-    let l_sum: u64 = input.iter()
-        .map(|c| c.clone().to_hsl().l.as_u8() as u64)
+    let l_sum: u64 = input
+        .iter()
+        .map(|c| u64::from(c.clone().to_hsl().l.as_u8()))
         .sum();
 
     let s_avg: u64 = dbg!(s_sum / input.len() as u64);
     let l_avg: u64 = dbg!(l_sum / input.len() as u64);
 
-    if s_avg > u8::max_value() as u64 {
+    if s_avg > u64::from(u8::max_value()) {
         return Err(ComputeError::AverageOutOfRange);
     }
-    if l_avg > u8::max_value() as u64 {
+    if l_avg > u64::from(u8::max_value()) {
         return Err(ComputeError::AverageOutOfRange);
     }
 
-    let x_sum: f32 = input.iter()
-        .map(|c| c.clone().to_hsl().h.degrees() as f32)
+    let x_sum: f32 = input
+        .iter()
+        .map(|c| f32::from(c.clone().to_hsl().h.degrees()))
         .map(|degrees| degrees.to_radians().cos())
         .sum();
-    let y_sum: f32 = input.iter()
-        .map(|c| c.clone().to_hsl().h.degrees() as f32)
+    let y_sum: f32 = input
+        .iter()
+        .map(|c| f32::from(c.clone().to_hsl().h.degrees()))
         .map(|degrees| degrees.to_radians().sin())
         .sum();
 
@@ -193,7 +192,8 @@ fn hsl_geo(input: &[RGB]) -> Result<RGB, ComputeError> {
         h: hue,
         s: Ratio::from_u8(s_avg as u8),
         l: Ratio::from_u8(l_avg as u8),
-    }.to_rgb())
+    }
+    .to_rgb())
 }
 
 fn random_color() -> RGB {
@@ -204,9 +204,8 @@ fn random_color() -> RGB {
     }
 }
 
-fn create_iter(max_len: usize, rounds: usize) -> impl Iterator<Item=(usize, usize)> {
-    (2..=max_len)
-        .flat_map(move |input_len| iter::repeat(input_len).zip(0..rounds))
+fn create_iter(max_len: usize, rounds: usize) -> impl Iterator<Item = (usize, usize)> {
+    (2..=max_len).flat_map(move |input_len| iter::repeat(input_len).zip(0..rounds))
 }
 
 fn id(input_len: usize, round: usize) -> String {
@@ -233,37 +232,38 @@ fn main() -> std::io::Result<()> {
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: rgb_avg not computable for {:?}", e, &input);
-                    black.clone()
+                    black
                 });
             let less_mix = panic::catch_unwind(|| less_mix(&input))
                 .map_err(|_| ComputeError::Panic)
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: less_mix not computable for {:?}", e, &input);
-                    black.clone()
+                    black
                 });
             let hsl_geo = panic::catch_unwind(|| hsl_geo(&input))
                 .map_err(|_| ComputeError::Panic)
                 .and_then(|r| r)
                 .unwrap_or_else(|e| {
                     eprintln!("WARN: {:?}: hsl_geo not computable for {:?}", e, &input);
-                    black.clone()
+                    black
                 });
             Record {
-                id, input, rgb_avg, less_mix, hsl_geo
+                id,
+                input,
+                rgb_avg,
+                less_mix,
+                hsl_geo,
             }
-        }).collect();
+        })
+        .collect();
 
-        let color_css: String = records.iter()
-            .map(|r| r.to_css())
-            .collect();
+    let color_css: String = records.iter().map(|r| r.to_css()).collect();
 
-        let html_content: String = records.iter()
-            .map(|r| r.to_html())
-            .collect();
+    let html_content: String = records.iter().map(|r| r.to_html()).collect();
 
-        let html = format!(
-"<html>
+    let html = format!(
+        "<html>
  <head>
 <link rel='stylesheet' type='text/css' href='index.css'>
 <link rel='stylesheet' type='text/css' href='colors.css'>
@@ -272,8 +272,8 @@ fn main() -> std::io::Result<()> {
 {}
 </body>
 </html>",
-            html_content
-        );
+        html_content
+    );
 
     fs::create_dir_all(out_dir)?;
 
@@ -287,8 +287,5 @@ fn main() -> std::io::Result<()> {
     html_file.write_all(html.as_bytes())?;
     drop(html_file);
 
-
-
     Ok(())
 }
-
